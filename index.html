@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF Text Extractor (No CDN)</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      #fileInput {
+        margin-bottom: 10px;
+      }
+      #output {
+        white-space: pre-wrap;
+        border: 1px solid #ccc;
+        padding: 10px;
+        min-height: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>PDF Text Extractor (No CDN)</h1>
+    <input type="file" id="fileInput" accept=".pdf" />
+    <button id="extractButton">Extract Text</button>
+    <div id="output"></div>
+
+    <script type="module">
+      import * as pdfjsLib from "./pdf.mjs";
+      // Set the worker source to the local worker file
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
+
+      let extractButton = document.getElementById("extractButton");
+
+      extractButton.addEventListener("click", extractText);
+
+      async function extractText() {
+        const fileInput = document.getElementById("fileInput");
+        const outputDiv = document.getElementById("output");
+
+        if (!fileInput.files.length) {
+          outputDiv.textContent = "Please select a PDF file.";
+          return;
+        }
+
+        const file = fileInput.files[0];
+        const arrayBuffer = await file.arrayBuffer();
+
+        try {
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          let fullText = "";
+
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items
+              .map((item) => item.str)
+              .join(" ");
+            fullText += `Page ${i}:\n${pageText}\n\n`;
+          }
+
+          outputDiv.textContent = fullText;
+        } catch (error) {
+          outputDiv.textContent = `Error: ${error.message}`;
+        }
+      }
+    </script>
+  </body>
+</html>
